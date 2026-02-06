@@ -66,7 +66,19 @@ class ModelTrainer:
         """
         logger.info("Handling class imbalance with SMOTE...")
         
-        smote = SMOTE(random_state=self.config['features'].get('random_state', 42))
+        # Determine appropriate k_neighbors for SMOTE based on sample size
+        minority_count = y_train.sum()
+        k_neighbors = 5
+        
+        if minority_count <= 1:
+            logger.warning(f"Minority class has only {minority_count} sample(s). Skipping SMOTE.")
+            return X_train, y_train
+            
+        if minority_count <= 6:
+            k_neighbors = max(1, int(minority_count - 1))
+            logger.info(f"Adjusting SMOTE k_neighbors to {k_neighbors} due to small sample size ({minority_count} fraud samples)")
+            
+        smote = SMOTE(random_state=self.config['features'].get('random_state', 42), k_neighbors=k_neighbors)
         X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)
         
         logger.info(f"  Original distribution: Fraud={y_train.sum()}, Normal={(1-y_train).sum()}")
