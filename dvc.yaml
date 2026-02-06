@@ -1,4 +1,4 @@
-"""DVC pipeline definition"""
+# DVC pipeline definition
 stages:
   data_ingestion:
     cmd: python -c "from src.ingestion.pipeline import DataIngestionPipeline; pipeline = DataIngestionPipeline(); pipeline.run()"

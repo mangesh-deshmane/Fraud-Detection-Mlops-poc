@@ -45,6 +45,19 @@ COPY --from=builder --chown=appuser:appuser /opt/venv /opt/venv
 # Copy project files
 COPY --chown=appuser:appuser . .
 
+# Download dataset using DVC
+# Note: For production, configure DVC remote (S3/Azure/GCS) before building
+# For local testing, ensure ../dvc-storage exists or use sample dataset
+RUN python -m dvc pull dataset/creditcard.csv.dvc || \
+    (echo "DVC pull failed, checking for fallback options..." && \
+     if [ -f "dataset/creditcard_sample.csv" ]; then \
+       echo "Using sample dataset for testing" && \
+       cp dataset/creditcard_sample.csv dataset/creditcard.csv; \
+     else \
+       echo "ERROR: No dataset available. Configure DVC remote or provide sample dataset." && \
+       exit 1; \
+     fi)
+
 # Create necessary directories for data and logs
 RUN mkdir -p data/raw data/validated data/processed && \
     mkdir -p logs && \

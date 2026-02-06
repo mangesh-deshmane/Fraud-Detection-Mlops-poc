@@ -22,66 +22,44 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
       
-      # Step 1b: Download dataset - Simple approach
-      - name: Download Dataset (Simple)
+      # Step 1b: Download dataset using DVC
+      - name: Download Dataset with DVC
         run: |
-          echo "=== DATASET SETUP ==="
+          echo "=== DATASET SETUP WITH DVC ==="
           
           # Create dataset directory
           mkdir -p dataset
           
-          # Strategy 1: Use local chunks if available
-          if [ -d "dataset_chunks" ] && ls dataset_chunks/creditcard_part_*.csv 1> /dev/null 2>&1; then
-            echo "✓ Found local chunks, merging..."
+          # Strategy 1: Try DVC pull (works if DVC remote is configured)
+          echo "Attempting DVC pull..."
+          if python -m dvc pull dataset/creditcard.csv.dvc 2>/dev/null; then
+            echo "[OK] Dataset downloaded via DVC"
+            ls -lh dataset/creditcard.csv
+            exit 0
+          fi
+          
+          echo "[INFO] DVC pull failed (expected in CI without remote configured)"
+          
+          # Strategy 2: Merge local chunks if available
+          if [ -d "dataset_chunks" ] && [ -f "dataset_chunks/creditcard_part_001.csv" ]; then
+            echo "[*] Using local chunks as fallback..."
             python simple_merge.py dataset_chunks "creditcard_part_*.csv" "creditcard.csv"
-            if [ $? -eq 0 ] && [ -f "dataset/creditcard.csv" ]; then
-              echo "✓ Successfully merged local chunks: $(ls -lh dataset/creditcard.csv | awk '{print $5}')"
+            if [ -f "dataset/creditcard.csv" ]; then
+              echo "[OK] Dataset merged from chunks: $(ls -lh dataset/creditcard.csv | awk '{print $5}')"
               exit 0
-            else
-              echo "✗ Failed to merge local chunks"
             fi
           fi
           
-          # Strategy 2: Download from GitHub Releases
-          echo "Downloading from GitHub Releases..."
-          CHUNK_COUNT=8
-          SUCCESS_COUNT=0
-          
-          for i in $(seq -w 1 $CHUNK_COUNT); do
-            CHUNK_URL="https://github.com/${{ github.repository }}/releases/download/dataset/creditcard_part_${i}.csv"
-            CHUNK_FILE="dataset/creditcard_part_${i}.csv"
-            
-            echo "Downloading chunk ${i}/${CHUNK_COUNT}..."
-            if curl -L -o "$CHUNK_FILE" "$CHUNK_URL" --fail --silent --show-error; then
-              if [ -f "$CHUNK_FILE" ] && [ $(wc -l < "$CHUNK_FILE") -gt 1 ]; then
-                file_size=$(ls -lh "$CHUNK_FILE" | awk '{print $5}')
-                echo "  ✓ Chunk ${i} downloaded: $file_size"
-                SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
-              else
-                echo "  ✗ Chunk ${i} download failed or empty"
-                rm -f "$CHUNK_FILE"
-              fi
-            else
-              echo "  ✗ Chunk ${i} download failed (HTTP error)"
-              rm -f "$CHUNK_FILE"
-            fi
-          done
-          
-          echo "Downloaded $SUCCESS_COUNT/$CHUNK_COUNT chunks"
-          
-          if [ $SUCCESS_COUNT -eq $CHUNK_COUNT ]; then
-            echo "Merging downloaded chunks..."
-            python simple_merge.py dataset "creditcard_part_*.csv" "creditcard.csv"
-            if [ $? -eq 0 ] && [ -f "dataset/creditcard.csv" ]; then
-              echo "✓ Successfully merged downloaded chunks: $(ls -lh dataset/creditcard.csv | awk '{print $5}')"
-              exit 0
-            else
-              echo "✗ Failed to merge downloaded chunks"
-            fi
-          else
-            echo "✗ ERROR: Only $SUCCESS_COUNT chunks downloaded, need all 8"
-            exit 1
+          # Strategy 3: Use sample dataset (last resort for CI testing)
+          if [ -f "dataset/creditcard_sample.csv" ]; then
+            echo "[WARNING] Using sample dataset for CI testing"
+            cp dataset/creditcard_sample.csv dataset/creditcard.csv
+            echo "[OK] Sample dataset ready: $(ls -lh dataset/creditcard.csv | awk '{print $5}')"
+            exit 0
           fi
+          
+          echo "[ERROR] Could not obtain dataset"
+          exit 1
       
       # Step 2: Set up Python environment
       - name: Set up Python ${{ env.PYTHON_VERSION }}
@@ -128,65 +106,33 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
       
-      - name: Download Dataset (Simple)
+      - name: Download Dataset with DVC
         run: |
-          echo "=== DATASET SETUP ==="
+          echo "=== DATASET SETUP WITH DVC ==="
           
           # Create dataset directory
           mkdir -p dataset
           
-          # Strategy 1: Use local chunks if available
-          if [ -d "dataset_chunks" ] && ls dataset_chunks/creditcard_part_*.csv 1> /dev/null 2>&1; then
-            echo "✓ Found local chunks, merging..."
-            python simple_merge.py dataset_chunks "creditcard_part_*.csv" "creditcard.csv"
-            if [ $? -eq 0 ] && [ -f "dataset/creditcard.csv" ]; then
-              echo "✓ Successfully merged local chunks: $(ls -lh dataset/creditcard.csv | awk '{print $5}')"
-              exit 0
-            else
-              echo "✗ Failed to merge local chunks"
-            fi
+          # Strategy 1: Try DVC pull
+          echo "Attempting DVC pull..."
+          if pip install dvc && python -m dvc pull dataset/creditcard.csv.dvc 2>/dev/null; then
+            echo "[OK] Dataset downloaded via DVC"
+            ls -lh dataset/creditcard.csv
+            exit 0
           fi
           
-          # Strategy 2: Download from GitHub Releases
-          echo "Downloading from GitHub Releases..."
-          CHUNK_COUNT=8
-          SUCCESS_COUNT=0
+          echo "[INFO] DVC pull failed (expected in CI without remote configured)"
           
-          for i in $(seq -w 1 $CHUNK_COUNT); do
-            CHUNK_URL="https://github.com/${{ github.repository }}/releases/download/dataset/creditcard_part_${i}.csv"
-            CHUNK_FILE="dataset/creditcard_part_${i}.csv"
-            
-            echo "Downloading chunk ${i}/${CHUNK_COUNT}..."
-            if curl -L -o "$CHUNK_FILE" "$CHUNK_URL" --fail --silent --show-error; then
-              if [ -f "$CHUNK_FILE" ] && [ $(wc -l < "$CHUNK_FILE") -gt 1 ]; then
-                file_size=$(ls -lh "$CHUNK_FILE" | awk '{print $5}')
-                echo "  ✓ Chunk ${i} downloaded: $file_size"
-                SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
-              else
-                echo "  ✗ Chunk ${i} download failed or empty"
-                rm -f "$CHUNK_FILE"
-              fi
-            else
-              echo "  ✗ Chunk ${i} download failed (HTTP error)"
-              rm -f "$CHUNK_FILE"
-            fi
-          done
-          
-          echo "Downloaded $SUCCESS_COUNT/$CHUNK_COUNT chunks"
-          
-          if [ $SUCCESS_COUNT -eq $CHUNK_COUNT ]; then
-            echo "Merging downloaded chunks..."
-            python simple_merge.py dataset "creditcard_part_*.csv" "creditcard.csv"
-            if [ $? -eq 0 ] && [ -f "dataset/creditcard.csv" ]; then
-              echo "✓ Successfully merged downloaded chunks: $(ls -lh dataset/creditcard.csv | awk '{print $5}')"
-              exit 0
-            else
-              echo "✗ Failed to merge downloaded chunks"
-            fi
-          else
-            echo "✗ ERROR: Only $SUCCESS_COUNT chunks downloaded, need all 8"
-            exit 1
+          # Strategy 2: Use sample dataset (fallback for CI)
+          if [ -f "dataset/creditcard_sample.csv" ]; then
+            echo "[WARNING] Using sample dataset for CI testing"
+            cp dataset/creditcard_sample.csv dataset/creditcard.csv
+            echo "[OK] Sample dataset ready: $(ls -lh dataset/creditcard.csv | awk '{print $5}')"
+            exit 0
           fi
+          
+          echo "[ERROR] Could not obtain dataset"
+          exit 1
       
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -255,65 +201,33 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
       
-      - name: Download Dataset (Simple)
+      - name: Download Dataset with DVC
         run: |
-          echo "=== DATASET SETUP ==="
+          echo "=== DATASET SETUP WITH DVC ==="
           
           # Create dataset directory
           mkdir -p dataset
           
-          # Strategy 1: Use local chunks if available
-          if [ -d "dataset_chunks" ] && ls dataset_chunks/creditcard_part_*.csv 1> /dev/null 2>&1; then
-            echo "✓ Found local chunks, merging..."
-            python simple_merge.py dataset_chunks "creditcard_part_*.csv" "creditcard.csv"
-            if [ $? -eq 0 ] && [ -f "dataset/creditcard.csv" ]; then
-              echo "✓ Successfully merged local chunks: $(ls -lh dataset/creditcard.csv | awk '{print $5}')"
-              exit 0
-            else
-              echo "✗ Failed to merge local chunks"
-            fi
+          # Strategy 1: Try DVC pull
+          echo "Attempting DVC pull..."
+          if pip install dvc && python -m dvc pull dataset/creditcard.csv.dvc 2>/dev/null; then
+            echo "[OK] Dataset downloaded via DVC"
+            ls -lh dataset/creditcard.csv
+            exit 0
           fi
           
-          # Strategy 2: Download from GitHub Releases
-          echo "Downloading from GitHub Releases..."
-          CHUNK_COUNT=8
-          SUCCESS_COUNT=0
+          echo "[INFO] DVC pull failed (expected in CI without remote configured)"
           
-          for i in $(seq -w 1 $CHUNK_COUNT); do
-            CHUNK_URL="https://github.com/${{ github.repository }}/releases/download/dataset/creditcard_part_${i}.csv"
-            CHUNK_FILE="dataset/creditcard_part_${i}.csv"
-            
-            echo "Downloading chunk ${i}/${CHUNK_COUNT}..."
-            if curl -L -o "$CHUNK_FILE" "$CHUNK_URL" --fail --silent --show-error; then
-              if [ -f "$CHUNK_FILE" ] && [ $(wc -l < "$CHUNK_FILE") -gt 1 ]; then
-                file_size=$(ls -lh "$CHUNK_FILE" | awk '{print $5}')
-                echo "  ✓ Chunk ${i} downloaded: $file_size"
-                SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
-              else
-                echo "  ✗ Chunk ${i} download failed or empty"
-                rm -f "$CHUNK_FILE"
-              fi
-            else
-              echo "  ✗ Chunk ${i} download failed (HTTP error)"
-              rm -f "$CHUNK_FILE"
-            fi
-          done
-          
-          echo "Downloaded $SUCCESS_COUNT/$CHUNK_COUNT chunks"
-          
-          if [ $SUCCESS_COUNT -eq $CHUNK_COUNT ]; then
-            echo "Merging downloaded chunks..."
-            python simple_merge.py dataset "creditcard_part_*.csv" "creditcard.csv"
-            if [ $? -eq 0 ] && [ -f "dataset/creditcard.csv" ]; then
-              echo "✓ Successfully merged downloaded chunks: $(ls -lh dataset/creditcard.csv | awk '{print $5}')"
-              exit 0
-            else
-              echo "✗ Failed to merge downloaded chunks"
-            fi
-          else
-            echo "✗ ERROR: Only $SUCCESS_COUNT chunks downloaded, need all 8"
-            exit 1
+          # Strategy 2: Use sample dataset (fallback for CI)
+          if [ -f "dataset/creditcard_sample.csv" ]; then
+            echo "[WARNING] Using sample dataset for CI testing"
+            cp dataset/creditcard_sample.csv dataset/creditcard.csv
+            echo "[OK] Sample dataset ready: $(ls -lh dataset/creditcard.csv | awk '{print $5}')"
+            exit 0
           fi
+          
+          echo "[ERROR] Could not obtain dataset"
+          exit 1
       
       - name: Download Validated Data
         uses: actions/download-artifact@v4
@@ -373,65 +287,33 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
       
-      - name: Download Dataset (Simple)
+      - name: Download Dataset with DVC
         run: |
-          echo "=== DATASET SETUP ==="
+          echo "=== DATASET SETUP WITH DVC ==="
           
           # Create dataset directory
           mkdir -p dataset
           
-          # Strategy 1: Use local chunks if available
-          if [ -d "dataset_chunks" ] && ls dataset_chunks/creditcard_part_*.csv 1> /dev/null 2>&1; then
-            echo "✓ Found local chunks, merging..."
-            python simple_merge.py dataset_chunks "creditcard_part_*.csv" "creditcard.csv"
-            if [ $? -eq 0 ] && [ -f "dataset/creditcard.csv" ]; then
-              echo "✓ Successfully merged local chunks: $(ls -lh dataset/creditcard.csv | awk '{print $5}')"
-              exit 0
-            else
-              echo "✗ Failed to merge local chunks"
-            fi
+          # Strategy 1: Try DVC pull
+          echo "Attempting DVC pull..."
+          if pip install dvc && python -m dvc pull dataset/creditcard.csv.dvc 2>/dev/null; then
+            echo "[OK] Dataset downloaded via DVC"
+            ls -lh dataset/creditcard.csv
+            exit 0
           fi
           
-          # Strategy 2: Download from GitHub Releases
-          echo "Downloading from GitHub Releases..."
-          CHUNK_COUNT=8
-          SUCCESS_COUNT=0
+          echo "[INFO] DVC pull failed (expected in CI without remote configured)"
           
-          for i in $(seq -w 1 $CHUNK_COUNT); do
-            CHUNK_URL="https://github.com/${{ github.repository }}/releases/download/dataset/creditcard_part_${i}.csv"
-            CHUNK_FILE="dataset/creditcard_part_${i}.csv"
-            
-            echo "Downloading chunk ${i}/${CHUNK_COUNT}..."
-            if curl -L -o "$CHUNK_FILE" "$CHUNK_URL" --fail --silent --show-error; then
-              if [ -f "$CHUNK_FILE" ] && [ $(wc -l < "$CHUNK_FILE") -gt 1 ]; then
-                file_size=$(ls -lh "$CHUNK_FILE" | awk '{print $5}')
-                echo "  ✓ Chunk ${i} downloaded: $file_size"
-                SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
-              else
-                echo "  ✗ Chunk ${i} download failed or empty"
-                rm -f "$CHUNK_FILE"
-              fi
-            else
-              echo "  ✗ Chunk ${i} download failed (HTTP error)"
-              rm -f "$CHUNK_FILE"
-            fi
-          done
-          
-          echo "Downloaded $SUCCESS_COUNT/$CHUNK_COUNT chunks"
-          
-          if [ $SUCCESS_COUNT -eq $CHUNK_COUNT ]; then
-            echo "Merging downloaded chunks..."
-            python simple_merge.py dataset "creditcard_part_*.csv" "creditcard.csv"
-            if [ $? -eq 0 ] && [ -f "dataset/creditcard.csv" ]; then
-              echo "✓ Successfully merged downloaded chunks: $(ls -lh dataset/creditcard.csv | awk '{print $5}')"
-              exit 0
-            else
-              echo "✗ Failed to merge downloaded chunks"
-            fi
-          else
-            echo "✗ ERROR: Only $SUCCESS_COUNT chunks downloaded, need all 8"
-            exit 1
+          # Strategy 2: Use sample dataset (fallback for CI)
+          if [ -f "dataset/creditcard_sample.csv" ]; then
+            echo "[WARNING] Using sample dataset for CI testing"
+            cp dataset/creditcard_sample.csv dataset/creditcard.csv
+            echo "[OK] Sample dataset ready: $(ls -lh dataset/creditcard.csv | awk '{print $5}')"
+            exit 0
           fi
+          
+          echo "[ERROR] Could not obtain dataset"
+          exit 1
       
       - name: Download Validated Data
         uses: actions/download-artifact@v4
@@ -512,65 +394,33 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
       
-      - name: Download Dataset (Simple)
+      - name: Download Dataset with DVC
         run: |
-          echo "=== DATASET SETUP ==="
+          echo "=== DATASET SETUP WITH DVC ==="
           
           # Create dataset directory
           mkdir -p dataset
           
-          # Strategy 1: Use local chunks if available
-          if [ -d "dataset_chunks" ] && ls dataset_chunks/creditcard_part_*.csv 1> /dev/null 2>&1; then
-            echo "✓ Found local chunks, merging..."
-            python simple_merge.py dataset_chunks "creditcard_part_*.csv" "creditcard.csv"
-            if [ $? -eq 0 ] && [ -f "dataset/creditcard.csv" ]; then
-              echo "✓ Successfully merged local chunks: $(ls -lh dataset/creditcard.csv | awk '{print $5}')"
-              exit 0
-            else
-              echo "✗ Failed to merge local chunks"
-            fi
+          # Strategy 1: Try DVC pull
+          echo "Attempting DVC pull..."
+          if pip install dvc && python -m dvc pull dataset/creditcard.csv.dvc 2>/dev/null; then
+            echo "[OK] Dataset downloaded via DVC"
+            ls -lh dataset/creditcard.csv
+            exit 0
           fi
           
-          # Strategy 2: Download from GitHub Releases
-          echo "Downloading from GitHub Releases..."
-          CHUNK_COUNT=8
-          SUCCESS_COUNT=0
+          echo "[INFO] DVC pull failed (expected in CI without remote configured)"
           
-          for i in $(seq -w 1 $CHUNK_COUNT); do
-            CHUNK_URL="https://github.com/${{ github.repository }}/releases/download/dataset/creditcard_part_${i}.csv"
-            CHUNK_FILE="dataset/creditcard_part_${i}.csv"
-            
-            echo "Downloading chunk ${i}/${CHUNK_COUNT}..."
-            if curl -L -o "$CHUNK_FILE" "$CHUNK_URL" --fail --silent --show-error; then
-              if [ -f "$CHUNK_FILE" ] && [ $(wc -l < "$CHUNK_FILE") -gt 1 ]; then
-                file_size=$(ls -lh "$CHUNK_FILE" | awk '{print $5}')
-                echo "  ✓ Chunk ${i} downloaded: $file_size"
-                SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
-              else
-                echo "  ✗ Chunk ${i} download failed or empty"
-                rm -f "$CHUNK_FILE"
-              fi
-            else
-              echo "  ✗ Chunk ${i} download failed (HTTP error)"
-              rm -f "$CHUNK_FILE"
-            fi
-          done
-          
-          echo "Downloaded $SUCCESS_COUNT/$CHUNK_COUNT chunks"
-          
-          if [ $SUCCESS_COUNT -eq $CHUNK_COUNT ]; then
-            echo "Merging downloaded chunks..."
-            python simple_merge.py dataset "creditcard_part_*.csv" "creditcard.csv"
-            if [ $? -eq 0 ] && [ -f "dataset/creditcard.csv" ]; then
-              echo "✓ Successfully merged downloaded chunks: $(ls -lh dataset/creditcard.csv | awk '{print $5}')"
-              exit 0
-            else
-              echo "✗ Failed to merge downloaded chunks"
-            fi
-          else
-            echo "✗ ERROR: Only $SUCCESS_COUNT chunks downloaded, need all 8"
-            exit 1
+          # Strategy 2: Use sample dataset (fallback for CI)
+          if [ -f "dataset/creditcard_sample.csv" ]; then
+            echo "[WARNING] Using sample dataset for CI testing"
+            cp dataset/creditcard_sample.csv dataset/creditcard.csv
+            echo "[OK] Sample dataset ready: $(ls -lh dataset/creditcard.csv | awk '{print $5}')"
+            exit 0
           fi
+          
+          echo "[ERROR] Could not obtain dataset"
+          exit 1
       
       - name: Download Validated Data
         uses: actions/download-artifact@v4
@@ -669,65 +519,33 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
       
-      - name: Download Dataset (Simple)
+      - name: Download Dataset with DVC
         run: |
-          echo "=== DATASET SETUP ==="
+          echo "=== DATASET SETUP WITH DVC ==="
           
           # Create dataset directory
           mkdir -p dataset
           
-          # Strategy 1: Use local chunks if available
-          if [ -d "dataset_chunks" ] && ls dataset_chunks/creditcard_part_*.csv 1> /dev/null 2>&1; then
-            echo "✓ Found local chunks, merging..."
-            python simple_merge.py dataset_chunks "creditcard_part_*.csv" "creditcard.csv"
-            if [ $? -eq 0 ] && [ -f "dataset/creditcard.csv" ]; then
-              echo "✓ Successfully merged local chunks: $(ls -lh dataset/creditcard.csv | awk '{print $5}')"
-              exit 0
-            else
-              echo "✗ Failed to merge local chunks"
-            fi
+          # Strategy 1: Try DVC pull
+          echo "Attempting DVC pull..."
+          if pip install dvc && python -m dvc pull dataset/creditcard.csv.dvc 2>/dev/null; then
+            echo "[OK] Dataset downloaded via DVC"
+            ls -lh dataset/creditcard.csv
+            exit 0
           fi
           
-          # Strategy 2: Download from GitHub Releases
-          echo "Downloading from GitHub Releases..."
-          CHUNK_COUNT=8
-          SUCCESS_COUNT=0
+          echo "[INFO] DVC pull failed (expected in CI without remote configured)"
           
-          for i in $(seq -w 1 $CHUNK_COUNT); do
-            CHUNK_URL="https://github.com/${{ github.repository }}/releases/download/dataset/creditcard_part_${i}.csv"
-            CHUNK_FILE="dataset/creditcard_part_${i}.csv"
-            
-            echo "Downloading chunk ${i}/${CHUNK_COUNT}..."
-            if curl -L -o "$CHUNK_FILE" "$CHUNK_URL" --fail --silent --show-error; then
-              if [ -f "$CHUNK_FILE" ] && [ $(wc -l < "$CHUNK_FILE") -gt 1 ]; then
-                file_size=$(ls -lh "$CHUNK_FILE" | awk '{print $5}')
-                echo "  ✓ Chunk ${i} downloaded: $file_size"
-                SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
-              else
-                echo "  ✗ Chunk ${i} download failed or empty"
-                rm -f "$CHUNK_FILE"
-              fi
-            else
-              echo "  ✗ Chunk ${i} download failed (HTTP error)"
-              rm -f "$CHUNK_FILE"
-            fi
-          done
-          
-          echo "Downloaded $SUCCESS_COUNT/$CHUNK_COUNT chunks"
-          
-          if [ $SUCCESS_COUNT -eq $CHUNK_COUNT ]; then
-            echo "Merging downloaded chunks..."
-            python simple_merge.py dataset "creditcard_part_*.csv" "creditcard.csv"
-            if [ $? -eq 0 ] && [ -f "dataset/creditcard.csv" ]; then
-              echo "✓ Successfully merged downloaded chunks: $(ls -lh dataset/creditcard.csv | awk '{print $5}')"
-              exit 0
-            else
-              echo "✗ Failed to merge downloaded chunks"
-            fi
-          else
-            echo "✗ ERROR: Only $SUCCESS_COUNT chunks downloaded, need all 8"
-            exit 1
+          # Strategy 2: Use sample dataset (fallback for CI)
+          if [ -f "dataset/creditcard_sample.csv" ]; then
+            echo "[WARNING] Using sample dataset for CI testing"
+            cp dataset/creditcard_sample.csv dataset/creditcard.csv
+            echo "[OK] Sample dataset ready: $(ls -lh dataset/creditcard.csv | awk '{print $5}')"
+            exit 0
           fi
+          
+          echo "[ERROR] Could not obtain dataset"
+          exit 1
       
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -869,65 +687,33 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
       
-      - name: Download Dataset (Simple)
+      - name: Download Dataset with DVC
         run: |
-          echo "=== DATASET SETUP ==="
+          echo "=== DATASET SETUP WITH DVC ==="
           
           # Create dataset directory
           mkdir -p dataset
           
-          # Strategy 1: Use local chunks if available
-          if [ -d "dataset_chunks" ] && ls dataset_chunks/creditcard_part_*.csv 1> /dev/null 2>&1; then
-            echo "✓ Found local chunks, merging..."
-            python simple_merge.py dataset_chunks "creditcard_part_*.csv" "creditcard.csv"
-            if [ $? -eq 0 ] && [ -f "dataset/creditcard.csv" ]; then
-              echo "✓ Successfully merged local chunks: $(ls -lh dataset/creditcard.csv | awk '{print $5}')"
-              exit 0
-            else
-              echo "✗ Failed to merge local chunks"
-            fi
+          # Strategy 1: Try DVC pull
+          echo "Attempting DVC pull..."
+          if pip install dvc && python -m dvc pull dataset/creditcard.csv.dvc 2>/dev/null; then
+            echo "[OK] Dataset downloaded via DVC"
+            ls -lh dataset/creditcard.csv
+            exit 0
           fi
           
-          # Strategy 2: Download from GitHub Releases
-          echo "Downloading from GitHub Releases..."
-          CHUNK_COUNT=8
-          SUCCESS_COUNT=0
+          echo "[INFO] DVC pull failed (expected in CI without remote configured)"
           
-          for i in $(seq -w 1 $CHUNK_COUNT); do
-            CHUNK_URL="https://github.com/${{ github.repository }}/releases/download/dataset/creditcard_part_${i}.csv"
-            CHUNK_FILE="dataset/creditcard_part_${i}.csv"
-            
-            echo "Downloading chunk ${i}/${CHUNK_COUNT}..."
-            if curl -L -o "$CHUNK_FILE" "$CHUNK_URL" --fail --silent --show-error; then
-              if [ -f "$CHUNK_FILE" ] && [ $(wc -l < "$CHUNK_FILE") -gt 1 ]; then
-                file_size=$(ls -lh "$CHUNK_FILE" | awk '{print $5}')
-                echo "  ✓ Chunk ${i} downloaded: $file_size"
-                SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
-              else
-                echo "  ✗ Chunk ${i} download failed or empty"
-                rm -f "$CHUNK_FILE"
-              fi
-            else
-              echo "  ✗ Chunk ${i} download failed (HTTP error)"
-              rm -f "$CHUNK_FILE"
-            fi
-          done
-          
-          echo "Downloaded $SUCCESS_COUNT/$CHUNK_COUNT chunks"
-          
-          if [ $SUCCESS_COUNT -eq $CHUNK_COUNT ]; then
-            echo "Merging downloaded chunks..."
-            python simple_merge.py dataset "creditcard_part_*.csv" "creditcard.csv"
-            if [ $? -eq 0 ] && [ -f "dataset/creditcard.csv" ]; then
-              echo "✓ Successfully merged downloaded chunks: $(ls -lh dataset/creditcard.csv | awk '{print $5}')"
-              exit 0
-            else
-              echo "✗ Failed to merge downloaded chunks"
-            fi
-          else
-            echo "✗ ERROR: Only $SUCCESS_COUNT chunks downloaded, need all 8"
-            exit 1
+          # Strategy 2: Use sample dataset (fallback for CI)
+          if [ -f "dataset/creditcard_sample.csv" ]; then
+            echo "[WARNING] Using sample dataset for CI testing"
+            cp dataset/creditcard_sample.csv dataset/creditcard.csv
+            echo "[OK] Sample dataset ready: $(ls -lh dataset/creditcard.csv | awk '{print $5}')"
+            exit 0
           fi
+          
+          echo "[ERROR] Could not obtain dataset"
+          exit 1
       
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -970,65 +756,33 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
       
-      - name: Download Dataset (Simple)
+      - name: Download Dataset with DVC
         run: |
-          echo "=== DATASET SETUP ==="
+          echo "=== DATASET SETUP WITH DVC ==="
           
           # Create dataset directory
           mkdir -p dataset
           
-          # Strategy 1: Use local chunks if available
-          if [ -d "dataset_chunks" ] && ls dataset_chunks/creditcard_part_*.csv 1> /dev/null 2>&1; then
-            echo "✓ Found local chunks, merging..."
-            python simple_merge.py dataset_chunks "creditcard_part_*.csv" "creditcard.csv"
-            if [ $? -eq 0 ] && [ -f "dataset/creditcard.csv" ]; then
-              echo "✓ Successfully merged local chunks: $(ls -lh dataset/creditcard.csv | awk '{print $5}')"
-              exit 0
-            else
-              echo "✗ Failed to merge local chunks"
-            fi
+          # Strategy 1: Try DVC pull
+          echo "Attempting DVC pull..."
+          if pip install dvc && python -m dvc pull dataset/creditcard.csv.dvc 2>/dev/null; then
+            echo "[OK] Dataset downloaded via DVC"
+            ls -lh dataset/creditcard.csv
+            exit 0
           fi
           
-          # Strategy 2: Download from GitHub Releases
-          echo "Downloading from GitHub Releases..."
-          CHUNK_COUNT=8
-          SUCCESS_COUNT=0
+          echo "[INFO] DVC pull failed (expected in CI without remote configured)"
           
-          for i in $(seq -w 1 $CHUNK_COUNT); do
-            CHUNK_URL="https://github.com/${{ github.repository }}/releases/download/dataset/creditcard_part_${i}.csv"
-            CHUNK_FILE="dataset/creditcard_part_${i}.csv"
-            
-            echo "Downloading chunk ${i}/${CHUNK_COUNT}..."
-            if curl -L -o "$CHUNK_FILE" "$CHUNK_URL" --fail --silent --show-error; then
-              if [ -f "$CHUNK_FILE" ] && [ $(wc -l < "$CHUNK_FILE") -gt 1 ]; then
-                file_size=$(ls -lh "$CHUNK_FILE" | awk '{print $5}')
-                echo "  ✓ Chunk ${i} downloaded: $file_size"
-                SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
-              else
-                echo "  ✗ Chunk ${i} download failed or empty"
-                rm -f "$CHUNK_FILE"
-              fi
-            else
-              echo "  ✗ Chunk ${i} download failed (HTTP error)"
-              rm -f "$CHUNK_FILE"
-            fi
-          done
-          
-          echo "Downloaded $SUCCESS_COUNT/$CHUNK_COUNT chunks"
-          
-          if [ $SUCCESS_COUNT -eq $CHUNK_COUNT ]; then
-            echo "Merging downloaded chunks..."
-            python simple_merge.py dataset "creditcard_part_*.csv" "creditcard.csv"
-            if [ $? -eq 0 ] && [ -f "dataset/creditcard.csv" ]; then
-              echo "✓ Successfully merged downloaded chunks: $(ls -lh dataset/creditcard.csv | awk '{print $5}')"
-              exit 0
-            else
-              echo "✗ Failed to merge downloaded chunks"
-            fi
-          else
-            echo "✗ ERROR: Only $SUCCESS_COUNT chunks downloaded, need all 8"
-            exit 1
+          # Strategy 2: Use sample dataset (fallback for CI)
+          if [ -f "dataset/creditcard_sample.csv" ]; then
+            echo "[WARNING] Using sample dataset for CI testing"
+            cp dataset/creditcard_sample.csv dataset/creditcard.csv
+            echo "[OK] Sample dataset ready: $(ls -lh dataset/creditcard.csv | awk '{print $5}')"
+            exit 0
           fi
+          
+          echo "[ERROR] Could not obtain dataset"
+          exit 1
       
       - name: Download All Artifacts
         uses: actions/download-artifact@v4

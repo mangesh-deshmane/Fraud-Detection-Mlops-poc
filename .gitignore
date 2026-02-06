@@ -26,14 +26,17 @@ wheels/
 # Data
 data/validated/
 data/processed/
-*.csv
 *.parquet
+
+# Ignore CSV files except dataset chunks
+!dataset_chunks/*.csv
 
 # MLflow & DVC
 mlruns/
 .mlflow
-.dvc
-dvc.lock
+/dataset/creditcard.csv
+/.dvc/cache
+/.dvc/tmp
 
 # IDE
 .vscode/
