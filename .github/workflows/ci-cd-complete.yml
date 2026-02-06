@@ -107,10 +107,10 @@ jobs:
           echo "Creating fresh venv..."
           python -m venv venv
           
-          echo "Installing core dependencies (optimized for Python 3.13)..."
+          echo "Installing core dependencies (Verified for Python 3.13)..."
           .\venv\Scripts\python -m pip install --upgrade pip
-          # We install core libs without strict versions first to ensure Python 3.13 compatibility
-          .\venv\Scripts\python -m pip install --prefer-binary pandas numpy scikit-learn xgboost lightgbm imbalanced-learn pytest pytest-cov dvc fastapi uvicorn pydantic pyyaml
+          # Manually listed packages based on local verification
+          .\venv\Scripts\python -m pip install --prefer-binary pandas numpy scikit-learn xgboost lightgbm imbalanced-learn pytest pytest-cov dvc fastapi uvicorn pydantic pyyaml mlflow
           
           echo "Verifying installed packages..."
           .\venv\Scripts\python -m pip list
