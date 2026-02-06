@@ -130,21 +130,44 @@ jobs:
           .\venv\Scripts\python -m pytest tests/integration -v
           
       - name: 4. Deploy to Docker (API, Prometheus, Grafana)
+        shell: powershell
         run: |
-          echo "Deploying Serving Stack..."
           docker compose down
           docker compose up -d --build
           
       - name: 5. Verify Monitoring and API
+        shell: powershell
         run: |
-          echo "Verifying deployment health..."
-          sleep 15
-          # API Health
-          curl -f http://localhost:8000/health || (echo "API Health Check Failed" && exit 1)
-          # Prometheus Health
-          curl -f http://localhost:9090/-/healthy || (echo "Prometheus Healthy Check Failed" && exit 1)
-          # Grafana Health
-          curl -f http://localhost:3000/api/health || (echo "Grafana Health Check Failed" && exit 1)
+          echo "Waiting for services to start..."
+          Start-Sleep -Seconds 15
+          
+          echo "Verifying API health..."
+          try {
+            $resp = Invoke-RestMethod -Uri "http://localhost:8000/health" -Method Get
+            echo "API Status: $($resp.status)"
+          } catch {
+            echo "API Health Check Failed"
+            exit 1
+          }
+          
+          echo "Verifying Prometheus health..."
+          try {
+            Invoke-RestMethod -Uri "http://localhost:9090/-/healthy" -Method Get
+            echo "Prometheus is healthy"
+          } catch {
+            echo "Prometheus Healthy Check Failed"
+            exit 1
+          }
+          
+          echo "Verifying Grafana health..."
+          try {
+            $resp = Invoke-RestMethod -Uri "http://localhost:3000/api/health" -Method Get
+            echo "Grafana Status: $($resp.database)"
+          } catch {
+            echo "Grafana Health Check Failed"
+            exit 1
+          }
+          
           echo "Production environment is stable."
 
 
