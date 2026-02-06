@@ -145,15 +145,22 @@ class ModelTrainer:
         # Calculate metrics
         metrics = {
             'accuracy': accuracy_score(y_test, y_pred),
-            'precision': precision_score(y_test, y_pred),
-            'recall': recall_score(y_test, y_pred),
-            'f1_score': f1_score(y_test, y_pred),
-            'roc_auc': roc_auc_score(y_test, y_pred_proba),
+            'precision': precision_score(y_test, y_pred, zero_division=0),
+            'recall': recall_score(y_test, y_pred, zero_division=0),
+            'f1_score': f1_score(y_test, y_pred, zero_division=0),
         }
         
-        # Calculate PR AUC
-        precision, recall, _ = precision_recall_curve(y_test, y_pred_proba)
-        metrics['pr_auc'] = auc(recall, precision)
+        # Calculate AUC metrics (requires both classes)
+        try:
+            metrics['roc_auc'] = roc_auc_score(y_test, y_pred_proba)
+            
+            # Calculate PR AUC
+            precision, recall, _ = precision_recall_curve(y_test, y_pred_proba)
+            metrics['pr_auc'] = auc(recall, precision)
+        except ValueError:
+            logger.warning(f"Could not calculate ROC/PR AUC for {model_name} (likely only one class in test set)")
+            metrics['roc_auc'] = 0.5
+            metrics['pr_auc'] = 0.0
         
         logger.info(f"\n  {model_name} Metrics:")
         for metric, value in metrics.items():
