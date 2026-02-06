@@ -84,6 +84,8 @@ jobs:
     needs: ci-pipeline
     runs-on: self-hosted
     if: github.ref == 'refs/heads/Mangesh_m1' && github.event_name != 'pull_request'
+    env:
+      PYTHONPATH: .
     
     steps:
       - name: 1. Setup and Pre-requisites
@@ -98,7 +100,8 @@ jobs:
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install dvc pandas pytest
+          pip install -r requirements.txt
+          pip install pytest pytest-cov dvc
           
       - name: 2. Setup Data (DVC Pull)
         run: |
