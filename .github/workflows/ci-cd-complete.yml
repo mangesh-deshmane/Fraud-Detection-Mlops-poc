@@ -103,7 +103,7 @@ jobs:
       - name: 3. Integration Test Cases
         run: |
           echo "Running Integration Tests..."
-          pytest tests/integration -v
+          python -m pytest tests/integration -v
           
       - name: 4. Deploy to Docker (API, Prometheus, Grafana)
         run: |
