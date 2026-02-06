@@ -244,6 +244,12 @@ class ModelTrainer:
         logger.info("MODEL TRAINING COMPLETED")
         logger.info("=" * 70)
         
+        # Check if any models were trained successfully
+        if not results['models']:
+            error_msg = "No models were trained successfully. Check logs for details."
+            logger.error(error_msg)
+            raise RuntimeError(error_msg)
+            
         return results
     
     def save_models(self, output_dir: str) -> None:
