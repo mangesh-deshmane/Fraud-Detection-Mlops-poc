@@ -37,6 +37,10 @@ jobs:
         run: |
           dvc config core.no_scm true
           
+      - name: Generate CI Sample Data
+        run: |
+          python scripts/generate_sample_data.py
+          
       - name: 2. Unit Test Cases (Ingestion, Validation, Feature Engineering, Feature Validation)
         run: |
           echo "Running Component Unit Tests..."
