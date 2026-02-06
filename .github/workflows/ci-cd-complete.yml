@@ -85,7 +85,7 @@ jobs:
     runs-on: self-hosted
     if: github.ref == 'refs/heads/Mangesh_m1' && github.event_name != 'pull_request'
     env:
-      PYTHONPATH: .
+      PYTHONPATH: ${{ github.workspace }}
     
     steps:
       - name: 1. Setup and Pre-requisites
@@ -100,11 +100,20 @@ jobs:
       - name: Install Dependencies
         shell: powershell
         run: |
-          if (Test-Path venv) { Remove-Item -Path venv -Recycle -Force }
+          $ErrorActionPreference = 'Stop'
+          echo "Cleaning old virtual environment..."
+          if (Test-Path venv) { Remove-Item -Path venv -Force -Recurse -ErrorAction SilentlyContinue }
+          
+          echo "Creating fresh venv..."
           python -m venv venv
+          
+          echo "Installing core dependencies (optimized for Python 3.13)..."
           .\venv\Scripts\python -m pip install --upgrade pip
-          .\venv\Scripts\python -m pip install --prefer-binary -r requirements.txt
-          .\venv\Scripts\python -m pip install --prefer-binary pytest pytest-cov dvc
+          # We install core libs without strict versions first to ensure Python 3.13 compatibility
+          .\venv\Scripts\python -m pip install --prefer-binary pandas numpy scikit-learn xgboost lightgbm imbalanced-learn pytest pytest-cov dvc fastapi uvicorn pydantic pyyaml
+          
+          echo "Verifying installed packages..."
+          .\venv\Scripts\python -m pip list
           
       - name: 2. Setup Data (DVC Pull)
         shell: powershell
