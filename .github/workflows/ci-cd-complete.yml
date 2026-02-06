@@ -103,6 +103,8 @@ jobs:
       - name: 2. Setup Data (DVC Pull)
         run: |
           echo "Retrieving production dataset..."
+          # Fix remote URL for self-hosted environment (point to host absolute path)
+          python -m dvc remote modify myremote url C:\Users\mangeshd\Documents\dvc-storage
           python -m dvc pull dataset/creditcard.csv.dvc -v
           
       - name: 3. Integration Test Cases
