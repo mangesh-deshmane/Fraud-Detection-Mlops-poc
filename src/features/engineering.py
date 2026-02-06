@@ -164,3 +164,37 @@ class FeatureEngineer:
         }
         
         return feature_info
+    
+    def save_scaler(self, path: str) -> None:
+        """Save scaler to disk
+        
+        Args:
+            path: Output path
+        """
+        if self.scaler is None:
+            logger.warning("No scaler to save")
+            return
+            
+        import pickle
+        from pathlib import Path
+        Path(path).parent.mkdir(parents=True, exist_ok=True)
+        
+        with open(path, 'wb') as f:
+            pickle.dump(self.scaler, f)
+        logger.info(f"Scaler saved to {path}")
+        
+    def load_scaler(self, path: str) -> None:
+        """Load scaler from disk
+        
+        Args:
+            path: Input path
+        """
+        import pickle
+        import os
+        
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"Scaler not found at {path}")
+            
+        with open(path, 'rb') as f:
+            self.scaler = pickle.load(f)
+        logger.info(f"Scaler loaded from {path}")

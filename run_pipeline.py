@@ -118,6 +118,7 @@ def main():
             trainer = ModelTrainer(config)
             results = trainer.train_all_models(X_train, X_test, y_train, y_test)
             trainer.save_models('models')
+            engineer.save_scaler('models/scaler.pkl')
             trainer.save_metrics('models/metrics.json')
             
             print(f"Model training completed")

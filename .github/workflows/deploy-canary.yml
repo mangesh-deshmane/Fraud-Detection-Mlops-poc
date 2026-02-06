@@ -1,4 +1,4 @@
-name: Deploy Canary - v2 with Traffic Split
+name: Deploy Canary Model
 
 on:
   workflow_dispatch:

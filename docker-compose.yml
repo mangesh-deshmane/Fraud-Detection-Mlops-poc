@@ -7,13 +7,16 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: fraud-detection-mlops
-    
+
     # Environment variables
     environment:
       - PYTHONUNBUFFERED=1
       - LOG_LEVEL=INFO
       - ENV=development
-    
+
+    # Run as root to avoid permission issues with bind mounts on Windows
+    user: "0:0"
+
     # Volume mounts for data and logs
     volumes:
       # Mount dataset
@@ -24,11 +27,11 @@ services:
       - ./logs:/app/logs:rw
       # Mount config (allows external override)
       - ./src/config:/app/src/config:ro
-    
+
     # Network configuration
     networks:
       - fraud-detection-net
-    
+
     # Resource limits
     deploy:
       resources:
@@ -38,14 +41,14 @@ services:
         reservations:
           cpus: '1'
           memory: 2G
-    
+
     # Logging configuration
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
-    
+
     # Restart policy
     restart: unless-stopped
 
@@ -53,21 +56,21 @@ services:
   prometheus:
     image: prom/prometheus:latest
     container_name: fraud-detection-prometheus
-    
+
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus-data:/prometheus
-    
+
     ports:
       - "9090:9090"
-    
+
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.path=/prometheus"
-    
+
     networks:
       - fraud-detection-net
-    
+
     restart: unless-stopped
     depends_on:
       - fraud-detection-pipeline
@@ -76,21 +79,21 @@ services:
   grafana:
     image: grafana/grafana:latest
     container_name: fraud-detection-grafana
-    
+
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
       - GF_USERS_ALLOW_SIGN_UP=false
-    
+
     volumes:
       - grafana-data:/var/lib/grafana
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
-    
+
     ports:
       - "3000:3000"
-    
+
     networks:
       - fraud-detection-net
-    
+
     restart: unless-stopped
     depends_on:
       - prometheus

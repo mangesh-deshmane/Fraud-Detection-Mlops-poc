@@ -1,4 +1,4 @@
-name: Drift Detection & Monitoring Job
+name: Feature Drift Detection
 
 on:
   workflow_dispatch:

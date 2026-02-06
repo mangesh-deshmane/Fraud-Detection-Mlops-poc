@@ -1,4 +1,4 @@
-name: Train Model v2 - Enhanced Models
+name: Train Challenger Model v2
 
 on:
   workflow_dispatch:

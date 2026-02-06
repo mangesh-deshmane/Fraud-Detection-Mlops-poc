@@ -1,4 +1,4 @@
-name: PR Validation - Code & Data Quality
+name: PR Code Quality & Testing
 
 on:
   pull_request:

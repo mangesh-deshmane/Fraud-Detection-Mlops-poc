@@ -1,4 +1,4 @@
-name: Deploy Model v1 - Production Release
+name: Deploy Model v1
 
 on:
   workflow_dispatch:

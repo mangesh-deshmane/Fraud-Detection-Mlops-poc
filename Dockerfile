@@ -50,13 +50,13 @@ COPY --chown=appuser:appuser . .
 # For local testing, ensure ../dvc-storage exists or use sample dataset
 RUN python -m dvc pull dataset/creditcard.csv.dvc || \
     (echo "DVC pull failed, checking for fallback options..." && \
-     if [ -f "dataset/creditcard_sample.csv" ]; then \
-       echo "Using sample dataset for testing" && \
-       cp dataset/creditcard_sample.csv dataset/creditcard.csv; \
-     else \
-       echo "ERROR: No dataset available. Configure DVC remote or provide sample dataset." && \
-       exit 1; \
-     fi)
+    if [ -f "dataset/creditcard_sample.csv" ]; then \
+    echo "Using sample dataset for testing" && \
+    cp dataset/creditcard_sample.csv dataset/creditcard.csv; \
+    else \
+    echo "ERROR: No dataset available. Configure DVC remote or provide sample dataset." && \
+    exit 1; \
+    fi)
 
 # Create necessary directories for data and logs
 RUN mkdir -p data/raw data/validated data/processed && \
@@ -73,6 +73,6 @@ EXPOSE 8000 8501 9090
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD python -c "from src.ingestion.loader import DataLoader; print('Health check: OK')" || exit 1
 
-# Default entrypoint - Run the data ingestion pipeline
-ENTRYPOINT ["python"]
-CMD ["-c", "from src.ingestion.pipeline import DataIngestionPipeline; import logging; logging.basicConfig(level=logging.INFO); p = DataIngestionPipeline(); p.run()"]
+# Default entrypoint - Run the FastAPI server
+ENTRYPOINT ["uvicorn"]
+CMD ["src.api.main:app", "--host", "0.0.0.0", "--port", "8000"]

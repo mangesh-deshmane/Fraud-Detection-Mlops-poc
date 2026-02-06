@@ -92,6 +92,7 @@ class MLTrainingPipeline:
         logger.info("  Applying feature engineering...")
         
         engineer = FeatureEngineer(self.config)
+        self.engineer = engineer
         df_engineered = engineer.engineer_features(self.data)
         df_scaled = engineer.scale_features(df_engineered)
         
@@ -188,6 +189,8 @@ class MLTrainingPipeline:
         # Save models
         Path("models").mkdir(exist_ok=True)
         self.trainer.save_models("models")
+        if hasattr(self, 'engineer'):
+            self.engineer.save_scaler("models/scaler.pkl")
         self.trainer.save_metrics("models/metrics.json")
         
         # Save model info

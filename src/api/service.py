@@ -139,6 +139,13 @@ class PredictionAPI:
                     info = json.load(f)
                     self.model_name = info.get('model_name', 'Unknown')
             
+            # Load scaler
+            scaler_path = Path("models/scaler.pkl")
+            if scaler_path.exists():
+                self.feature_engineer.load_scaler(str(scaler_path))
+            else:
+                logger.warning("Scaler not found. Feature scaling might fail.")
+
             logger.info(f"Model loaded: {self.model_name}")
         except Exception as e:
             logger.error(f"Failed to load model: {e}")
