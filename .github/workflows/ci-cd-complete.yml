@@ -98,27 +98,27 @@ jobs:
           path: models/
       
       - name: Install Dependencies
-        shell: pwsh
+        shell: powershell
         run: |
           if (Test-Path venv) { Remove-Item -Path venv -Recycle -Force }
           python -m venv venv
-          ./venv/Scripts/python -m pip install --upgrade pip
-          ./venv/Scripts/python -m pip install --prefer-binary -r requirements.txt
-          ./venv/Scripts/python -m pip install --prefer-binary pytest pytest-cov dvc
+          .\venv\Scripts\python -m pip install --upgrade pip
+          .\venv\Scripts\python -m pip install --prefer-binary -r requirements.txt
+          .\venv\Scripts\python -m pip install --prefer-binary pytest pytest-cov dvc
           
       - name: 2. Setup Data (DVC Pull)
-        shell: pwsh
+        shell: powershell
         run: |
           echo "Retrieving production dataset..."
           # Fix remote URL and pull using venv python
-          ./venv/Scripts/python -m dvc remote modify myremote url C:\Users\mangeshd\Documents\dvc-storage
-          ./venv/Scripts/python -m dvc pull dataset/creditcard.csv.dvc -v
+          .\venv\Scripts\python -m dvc remote modify myremote url C:\Users\mangeshd\Documents\dvc-storage
+          .\venv\Scripts\python -m dvc pull dataset/creditcard.csv.dvc -v
           
       - name: 3. Integration Test Cases
-        shell: pwsh
+        shell: powershell
         run: |
           echo "Running Integration Tests..."
-          ./venv/Scripts/python -m pytest tests/integration -v
+          .\venv\Scripts\python -m pytest tests/integration -v
           
       - name: 4. Deploy to Docker (API, Prometheus, Grafana)
         run: |
