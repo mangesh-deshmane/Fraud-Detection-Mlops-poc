@@ -1,0 +1,17 @@
+split_data:
+  test_size: 0.2
+  random_state: 42
+
+model_training:
+  logistic_regression:
+    max_iter: 1000
+    solver: 'lbfgs'
+  xgboost:
+    eval_metric: 'auc'
+    verbosity: 0
+  lightgbm:
+    verbosity: -1
+
+mlflow:
+  experiment_name: "Fraud_Detection_Experiment"
+  run_name: "XGBoost_Candidate"

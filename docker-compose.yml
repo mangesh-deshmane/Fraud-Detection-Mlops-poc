@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  fraud-detection-pipeline:
+    build: .
+    volumes:
+      - ./dataset:/app/dataset  # Mount dataset for input
+      - ./artifacts:/app/artifacts # Persist artifacts
+      - ./logs:/app/logs        # Persist logs
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mlflow-db
+    environment:
+      - MLFLOW_TRACKING_URI=postgresql://mlflow:mlflow@mlflow-db:5432/mlflow_db
+
+  mlflow-ui:
+    build: .
+    container_name: mlflow-ui
+    ports:
+      - "5000:5000"
+    environment:
+      - MLFLOW_TRACKING_URI=postgresql://mlflow:mlflow@mlflow-db:5432/mlflow_db
+    command: mlflow server --backend-store-uri postgresql://mlflow:mlflow@mlflow-db:5432/mlflow_db --default-artifact-root /app/mlruns --host 0.0.0.0
+    depends_on:
+      - mlflow-db
+
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    depends_on:
+      - prometheus
+
+  mlflow-db:
+    image: postgres:13
+    environment:
+      - POSTGRES_USER=mlflow
+      - POSTGRES_PASSWORD=mlflow
+      - POSTGRES_DB=mlflow_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - mlflow-db-data:/var/lib/postgresql/data
+
+volumes:
+  mlflow-db-data:

@@ -1,0 +1,15 @@
+pandas
+numpy
+great_expectations
+scikit-learn
+joblib
+boto3
+xgboost
+lightgbm
+mlflow
+fastapi
+uvicorn
+pyyaml
+psycopg2-binary
+evidently
+prometheus-fastapi-instrumentator

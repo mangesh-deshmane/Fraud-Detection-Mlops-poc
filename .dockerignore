@@ -1,0 +1,10 @@
+venv/
+.git/
+__pycache__/
+dataset/
+logs/
+.pytest_cache/
+.DS_Store
+artifacts/
+mlruns/
+.venv/
