@@ -99,21 +99,22 @@ jobs:
       
       - name: Install Dependencies
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install --user -r requirements.txt
-          python -m pip install --user pytest pytest-cov dvc
+          python -m venv venv
+          .\venv\Scripts\python -m pip install --upgrade pip
+          .\venv\Scripts\python -m pip install -r requirements.txt
+          .\venv\Scripts\python -m pip install pytest pytest-cov dvc
           
       - name: 2. Setup Data (DVC Pull)
         run: |
           echo "Retrieving production dataset..."
-          # Fix remote URL for self-hosted environment (point to host absolute path)
-          python -m dvc remote modify myremote url C:\Users\mangeshd\Documents\dvc-storage
-          python -m dvc pull dataset/creditcard.csv.dvc -v
+          # Fix remote URL and pull using venv python
+          .\venv\Scripts\python -m dvc remote modify myremote url C:\Users\mangeshd\Documents\dvc-storage
+          .\venv\Scripts\python -m dvc pull dataset/creditcard.csv.dvc -v
           
       - name: 3. Integration Test Cases
         run: |
           echo "Running Integration Tests..."
-          python -m pytest tests/integration -v
+          .\venv\Scripts\python -m pytest tests/integration -v
           
       - name: 4. Deploy to Docker (API, Prometheus, Grafana)
         run: |
