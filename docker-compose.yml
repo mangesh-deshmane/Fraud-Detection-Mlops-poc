@@ -14,6 +14,9 @@ services:
       - LOG_LEVEL=INFO
       - ENV=development
 
+    ports:
+      - "8000:8000"
+
     # Run as root to avoid permission issues with bind mounts on Windows
     user: "0:0"
 
@@ -21,6 +24,8 @@ services:
     volumes:
       # Mount dataset
       - ./dataset:/app/dataset:ro
+      # Mount models
+      - ./models:/app/models:ro
       # Mount data directory (for outputs)
       - ./data:/app/data:rw
       # Mount logs
