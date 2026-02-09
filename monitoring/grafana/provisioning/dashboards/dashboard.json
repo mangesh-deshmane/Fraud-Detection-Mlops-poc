@@ -1,119 +1,128 @@
 {
-  "dashboard": {
-    "title": "Fraud Detection MLOps Dashboard",
-    "description": "Real-time monitoring of fraud detection model performance, data quality, and infrastructure",
-    "timezone": "UTC",
-    "uid": "fraud-detection-mlops",
-    "version": 1,
-    "panels": [
-      {
-        "title": "Model Accuracy",
-        "type": "graph",
-        "gridPos": {"x": 0, "y": 0, "w": 12, "h": 8},
-        "targets": [
-          {
-            "expr": "fraud_detection_model_accuracy",
-            "legendFormat": "{{ model_name }} v{{ version }}"
-          }
-        ]
-      },
-      {
-        "title": "Model F1 Score",
-        "type": "graph",
-        "gridPos": {"x": 12, "y": 0, "w": 12, "h": 8},
-        "targets": [
-          {
-            "expr": "fraud_detection_model_f1_score",
-            "legendFormat": "{{ model_name }} v{{ version }}"
-          }
-        ]
-      },
-      {
-        "title": "Prediction Latency (p95)",
-        "type": "graph",
-        "gridPos": {"x": 0, "y": 8, "w": 12, "h": 8},
-        "targets": [
-          {
-            "expr": "histogram_quantile(0.95, fraud_detection_prediction_latency_seconds)",
-            "legendFormat": "{{ model_name }}"
-          }
-        ]
-      },
-      {
-        "title": "Predictions per Minute",
-        "type": "graph",
-        "gridPos": {"x": 12, "y": 8, "w": 12, "h": 8},
-        "targets": [
-          {
-            "expr": "rate(fraud_detection_predictions_total[1m])",
-            "legendFormat": "{{ model_name }} - {{ prediction_label }}"
-          }
-        ]
-      },
-      {
-        "title": "API Request Rate",
-        "type": "graph",
-        "gridPos": {"x": 0, "y": 16, "w": 12, "h": 8},
-        "targets": [
-          {
-            "expr": "rate(fraud_detection_api_requests_total[1m])",
-            "legendFormat": "{{ endpoint }} - {{ method }}"
-          }
-        ]
-      },
-      {
-        "title": "API Error Rate",
-        "type": "graph",
-        "gridPos": {"x": 12, "y": 16, "w": 12, "h": 8},
-        "targets": [
-          {
-            "expr": "rate(fraud_detection_api_requests_total{status=\"error\"}[1m])",
-            "legendFormat": "{{ endpoint }} - errors"
-          }
-        ]
-      },
-      {
-        "title": "Data Drift Alerts",
-        "type": "table",
-        "gridPos": {"x": 0, "y": 24, "w": 12, "h": 8},
-        "targets": [
-          {
-            "expr": "fraud_detection_data_drift_detected",
-            "legendFormat": "{{ feature }}"
-          }
-        ]
-      },
-      {
-        "title": "Deployed Model Versions",
-        "type": "table",
-        "gridPos": {"x": 12, "y": 24, "w": 12, "h": 8},
-        "targets": [
-          {
-            "expr": "fraud_detection_model_versions_deployed",
-            "legendFormat": "{{ version }}"
-          }
-        ]
-      },
-      {
-        "title": "Active Alerts",
-        "type": "stat",
-        "gridPos": {"x": 0, "y": 32, "w": 6, "h": 6},
-        "targets": [
-          {
-            "expr": "count(ALERTS{alertstate=\"firing\"})"
-          }
-        ]
-      },
-      {
-        "title": "System Health",
-        "type": "stat",
-        "gridPos": {"x": 6, "y": 32, "w": 6, "h": 6},
-        "targets": [
-          {
-            "expr": "up{job=\"fraud-detection-api\"}"
-          }
-        ]
-      }
-    ]
-  }
+  "title": "Fraud Detection MLOps Dashboard",
+  "description": "Real-time monitoring of fraud detection model performance, data quality, and infrastructure",
+  "timezone": "UTC",
+  "uid": "fraud-detection-mlops",
+  "version": 2,
+  "schemaVersion": 36,
+  "panels": [
+    {
+      "title": "Model Accuracy",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "gridPos": {"x": 0, "y": 0, "w": 12, "h": 8},
+      "targets": [
+        {
+          "expr": "fraud_detection_model_accuracy",
+          "legendFormat": "{{ model_name }} v{{ version }}"
+        }
+      ]
+    },
+    {
+      "title": "Model F1 Score",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "gridPos": {"x": 12, "y": 0, "w": 12, "h": 8},
+      "targets": [
+        {
+          "expr": "fraud_detection_model_f1_score",
+          "legendFormat": "{{ model_name }} v{{ version }}"
+        }
+      ]
+    },
+    {
+      "title": "Prediction Latency (p95)",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "gridPos": {"x": 0, "y": 8, "w": 12, "h": 8},
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, fraud_detection_prediction_latency_seconds)",
+          "legendFormat": "{{ model_name }}"
+        }
+      ]
+    },
+    {
+      "title": "Predictions per Minute",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "gridPos": {"x": 12, "y": 8, "w": 12, "h": 8},
+      "targets": [
+        {
+          "expr": "rate(fraud_detection_predictions_total[1m])",
+          "legendFormat": "{{ model_name }} - {{ prediction_label }}"
+        }
+      ]
+    },
+    {
+      "title": "API Request Rate",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "gridPos": {"x": 0, "y": 16, "w": 12, "h": 8},
+      "targets": [
+        {
+          "expr": "rate(fraud_detection_api_requests_total[1m])",
+          "legendFormat": "{{ endpoint }} - {{ method }}"
+        }
+      ]
+    },
+    {
+      "title": "API Error Rate",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "gridPos": {"x": 12, "y": 16, "w": 12, "h": 8},
+      "targets": [
+        {
+          "expr": "rate(fraud_detection_api_requests_total{status=\"error\"}[1m])",
+          "legendFormat": "{{ endpoint }} - errors"
+        }
+      ]
+    },
+    {
+      "title": "Data Drift Alerts",
+      "type": "table",
+      "datasource": "Prometheus",
+      "gridPos": {"x": 0, "y": 24, "w": 12, "h": 8},
+      "targets": [
+        {
+          "expr": "fraud_detection_data_drift_detected",
+          "legendFormat": "{{ feature }}"
+        }
+      ]
+    },
+    {
+      "title": "Deployed Model Versions",
+      "type": "table",
+      "datasource": "Prometheus",
+      "gridPos": {"x": 12, "y": 24, "w": 12, "h": 8},
+      "targets": [
+        {
+          "expr": "fraud_detection_model_versions_deployed",
+          "legendFormat": "{{ version }}"
+        }
+      ]
+    },
+    {
+      "title": "Active Alerts",
+      "type": "stat",
+      "datasource": "Prometheus",
+      "gridPos": {"x": 0, "y": 32, "w": 6, "h": 6},
+      "targets": [
+        {
+          "expr": "count(ALERTS{alertstate=\"firing\"})"
+        }
+      ]
+    },
+    {
+      "title": "System Health",
+      "type": "stat",
+      "datasource": "Prometheus",
+      "gridPos": {"x": 6, "y": 32, "w": 6, "h": 6},
+      "targets": [
+        {
+          "expr": "up{job=\"fraud-detection-api\"}"
+        }
+      ]
+    }
+  ]
 }
